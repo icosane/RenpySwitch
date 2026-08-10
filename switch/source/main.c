@@ -91,9 +91,17 @@ static PyMethodDef myMethods[] = {
     { NULL, NULL, 0, NULL }
 };
 
-PyMODINIT_FUNC init_otrh_libnx(void)
+static struct PyModuleDef otrh_libnx_module = {
+    PyModuleDef_HEAD_INIT,
+    "_otrhlibnx",
+    NULL,
+    -1,
+    myMethods,
+};
+
+PyMODINIT_FUNC PyInit__otrhlibnx(void)
 {
-    Py_InitModule("_otrhlibnx", myMethods);
+    return PyModule_Create(&otrh_libnx_module);
 }
 
 PyMODINIT_FUNC initpygame_sdl2_color();
@@ -238,7 +246,7 @@ void userAppInit()
         if (count > 1) {
             pselShowUserSelector(&userID, &settings);
         } else {
-            size_t loadedUsers;
+            s32 loadedUsers;
             AccountUid account_ids[count];
             accountListAllUsers(account_ids, count, &loadedUsers);
             userID = account_ids[0];
@@ -304,7 +312,7 @@ int main(int argc, char* argv[])
 
     static struct _inittab builtins[] = {
 
-        {"_otrhlibnx", init_otrh_libnx},
+        {"_otrhlibnx", PyInit__otrhlibnx},
 
         {"pygame_sdl2.color", initpygame_sdl2_color},
         {"pygame_sdl2.controller", initpygame_sdl2_controller},
@@ -376,7 +384,7 @@ int main(int argc, char* argv[])
 
     PyImport_ExtendInittab(builtins);
 
-    Py_SetPythonHome("romfs:/Contents/lib.zip");
+    Py_SetPythonHome(L"romfs:/Contents/lib.zip");
 
     FILE* sysconfigdata_file = fopen("romfs:/Contents/lib.zip", "rb");
     FILE* renpy_file = fopen("romfs:/Contents/renpy.py", "rb");
@@ -395,8 +403,8 @@ int main(int argc, char* argv[])
 
     Py_InitializeEx(0);
 
-    char* pyargs[] = {
-        "romfs:/Contents/renpy.py",
+    wchar_t* pyargs[] = {
+        L"romfs:/Contents/renpy.py",
         NULL,
     };
 

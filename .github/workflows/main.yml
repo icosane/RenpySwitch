@@ -1,5 +1,5 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: RenpySwitch Build
+run-name: ${{ github.actor }} building Ren'Py Switch 🎮
 on: [push]
 
 jobs:
@@ -9,21 +9,24 @@ jobs:
         container: devkitpro/devkita64:20230910
 
         steps:
-        - name: Check for dockerenv file
+        - name: Check devkitPro environment
           run: echo $DEVKITPRO
             
-        - name: checkout repository
+        - name: Checkout repository
           uses: actions/checkout@master
           with:
             submodules: recursive
             
-        - name: setup environment
+        - name: Fix line endings
+          run: sed -i 's/\r//' setup.bash build.bash link_sources.bash
+
+        - name: Setup environment
           run: sudo bash setup.bash
         
-        - name: build
+        - name: Build
           run: sudo bash build.bash
 
-        - name: upload raw
+        - name: Upload raw artifact
           uses: actions/upload-artifact@master
           with:
             name: raw

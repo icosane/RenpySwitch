@@ -13,7 +13,7 @@ project(renpy-switch)
 
 set(SWITCH_APP_NAME "Ren'Py")
 set(SWITCH_AUTHOR   "renpytom")
-set(SWITCH_VERSION  "7.6.3")
+set(SWITCH_VERSION  "8.3.4")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -29,7 +29,7 @@ set(OPTIMIZATION_FLAGS
 )
 
 set(INCLUDES
-    ${DEVKITPRO}/portlibs/switch/include/python2.7
+    ${DEVKITPRO}/portlibs/switch/include/python3.14
 )
 
 set(SOURCES
@@ -125,7 +125,7 @@ endif()
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
-    ${DEVKITPRO}/portlibs/switch/lib/libpython2.7.a
+    ${DEVKITPRO}/portlibs/switch/lib/libpython3.14.a
     ${DEVKITPRO}/portlibs/switch/lib/librenpy-switch-modules.a
     m
     PkgConfig::EGL

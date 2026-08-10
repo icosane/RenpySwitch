@@ -1,0 +1,17 @@
+# Python virtual environment
+.venv/
+
+# Build artifacts
+build-switch/
+raw/
+renpy_clear/
+private/
+pygame_sdl2-source/
+renpy-source/
+renpy_sdk/
+downloads/
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.pkg.tar.xz
+*.zip

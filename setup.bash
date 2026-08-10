@@ -1,79 +1,148 @@
+#!/usr/bin/env bash
 set -e
 
-export DEVKITPRO=/opt/devkitpro
-export RENPY_VER=7.6.3
+export DEVKITPRO="${DEVKITPRO:-/opt/devkitpro}"
+export RENPY_VER=8.3.4
 export PYGAME_SDL2_VER=2.1.0
 
+# ─── Directories & Caching Setup ─────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
+CACHE_DIR="$SCRIPT_DIR/downloads"
+
+mkdir -p "$CACHE_DIR"
+
+FORCE_CLEAN=false
+if [ "${1:-}" = "--force" ] || [ "${1:-}" = "-f" ]; then
+    FORCE_CLEAN=true
+    echo ">>> '--force' specified. Will re-extract and re-patch source directories."
+fi
+
+download_cached() {
+    local url="$1"
+    local filename
+    filename="$(basename "$url")"
+    local target="$CACHE_DIR/$filename"
+
+    if [ -f "$target" ]; then
+        echo ">>> [Cache Hit] $filename"
+    else
+        echo ">>> Downloading $url -> $target..."
+        curl -L -C - "$url" -o "$target"
+    fi
+}
+
+# ─── System Packages & Dependencies ──────────────────────────────────────────
 apt-get -y update
 apt-get -y upgrade
 
-apt -y install build-essential checkinstall
-apt -y install libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev
+apt-get -y install build-essential \
+    libncurses-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev \
+    python3 python3-dev python3-pip python3-venv \
+    p7zip-full libsdl2-dev libsdl2-image-dev libjpeg-dev libpng-dev \
+    libsdl2-ttf-dev libsdl2-mixer-dev libavformat-dev libfreetype-dev \
+    libswscale-dev libglew-dev libfribidi-dev libavcodec-dev libswresample-dev \
+    libsdl2-gfx-dev libgl1 libegl-dev libgles-dev unzip curl cmake icoutils
 
-apt -y install python2 python2-dev
+# ─── Create / reuse virtual environment ──────────────────────────────────────
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    echo ">>> Creating Python venv at $VENV_DIR..."
+    python3 -m venv "$VENV_DIR"
+else
+    echo ">>> Using existing Python venv at $VENV_DIR"
+fi
 
-python2 --version
+# shellcheck source=/dev/null
+source "$VENV_DIR/bin/activate"
 
-curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-python2 get-pip.py
-pip2 --version 
+# Upgrade pip & Install build-time Python dependencies inside the venv
+pip install Cython==3.0.10 setuptools future six
 
-apt-get -y install p7zip-full libsdl2-dev libsdl2-image-dev libjpeg-dev libpng-dev libsdl2-ttf-dev libsdl2-mixer-dev libavformat-dev libfreetype6-dev libswscale-dev libglew-dev libfribidi-dev libavcodec-dev  libswresample-dev libsdl2-gfx-dev libgl1-mesa-glx
-pip2 uninstall distribute
-pip2 install future six typing requests ecdsa pefile==2019.4.18 Cython==0.29.36 setuptools==0.9.8
+echo ">>> Python: $(which python) — $(python --version)"
+echo ">>> Pip:    $(which pip) — $(pip --version)"
 
-curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
-curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/python27-switch.zip
-curl -LOC - https://github.com/knautilus/Utils/releases/download/v1.0/switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-dkp-pacman -U --noconfirm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
-dkp-pacman -U --noconfirm switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-unzip -qq python27-switch.zip -d $DEVKITPRO/portlibs/switch
+# ─── NXPython — Python 3.14 for Switch (Cached Check) ─────────────────────────
+if [ -f "$DEVKITPRO/portlibs/switch/lib/libpython3.14.a" ] && [ -f "$DEVKITPRO/portlibs/switch/include/python3.14/pyconfig.h" ]; then
+    echo ">>> [Cache Hit] NXPython (Python 3.14 portlib) is already installed at $DEVKITPRO/portlibs/switch."
+else
+    echo ">>> Building NXPython (Python 3.14 for Switch)..."
+    NXPYTHON_COMMIT=1b1c61a94f0685bb0be707b5374376f3084159fe
+    rm -rf /tmp/NXPython
+    git clone https://github.com/jvrcruzGAMES/NXPython /tmp/NXPython
+    cd /tmp/NXPython
+    CPYTHON_REF=$NXPYTHON_COMMIT bash build.sh
+    cd "$SCRIPT_DIR"
+fi
 
-rm devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz
-rm switch-libfribidi-1.0.12-1-any.pkg.tar.xz
-rm python27-switch.zip
+echo ">>> Installing devkitPro Switch portlibs (Mesa, SDL2, FFmpeg, etc.)..."
+dkp-pacman -S switch-mesa switch-glad switch-libdrm_nouveau \
+    switch-sdl2 switch-sdl2_gfx switch-sdl2_image switch-sdl2_mixer switch-sdl2_ttf \
+    switch-ffmpeg switch-freetype switch-curl switch-mbedtls switch-liblzma \
+    switch-libzstd switch-zlib switch-bzip2 --noconfirm --needed
+
+# ─── devkitPro Portlibs Packages (Cached Downloads) ─────────────────────────
+HELPERS_PKG="devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz"
+FRIBIDI_PKG="switch-libfribidi-1.0.12-1-any.pkg.tar.xz"
+
+download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$HELPERS_PKG"
+download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$FRIBIDI_PKG"
+
+dkp-pacman -U --noconfirm "$CACHE_DIR/$HELPERS_PKG"
+dkp-pacman -U --noconfirm "$CACHE_DIR/$FRIBIDI_PKG"
 
 /bin/bash -c 'sed -i'"'"'.bak'"'"' '"'"'s/set(CMAKE_EXE_LINKER_FLAGS_INIT "/set(CMAKE_EXE_LINKER_FLAGS_INIT "-fPIC /'"'"' $DEVKITPRO/switch.cmake'
 
+# ─── Ren'Py & SDL2 Downloads (Cached in ./downloads/) ─────────────────────────
+PYGAME_TAR="pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER.tar.gz"
+SDK_ZIP="renpy-$RENPY_VER-sdk.zip"
+SOURCE_TAR="renpy-$RENPY_VER-source.tar.bz2"
 
-curl -LOC - https://www.renpy.org/dl/$RENPY_VER/pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER.tar.gz
-curl -LOC - https://www.renpy.org/dl/$RENPY_VER/renpy-$RENPY_VER-sdk.zip
-curl -LOC - https://www.renpy.org/dl/$RENPY_VER/renpy-$RENPY_VER-source.tar.bz2
-#curl -LOC - https://www.renpy.org/dl/$RENPY_VER/android-native-symbols.zip
-#curl -LOC - https://dl.otorh.in/github/rawproject.zip
+download_cached "https://www.renpy.org/dl/$RENPY_VER/$PYGAME_TAR"
+download_cached "https://www.renpy.org/dl/$RENPY_VER/$SDK_ZIP"
+download_cached "https://www.renpy.org/dl/$RENPY_VER/$SOURCE_TAR"
 
-rm -rf pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER pygame_sdl2-source
-tar -xf pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER.tar.gz
-mv pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER pygame_sdl2-source
-rm pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER.tar.gz
+# ─── Source Extraction & Patching (Cached Folders) ─────────────────────────────
+# 1. pygame_sdl2-source
+if [ "$FORCE_CLEAN" = true ] || [ ! -d "pygame_sdl2-source" ]; then
+    echo ">>> Extracting pygame_sdl2 source..."
+    rm -rf pygame_sdl2-source "pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER"
+    tar -xf "$CACHE_DIR/$PYGAME_TAR"
+    mv "pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER" pygame_sdl2-source
+    pushd pygame_sdl2-source >/dev/null
+    rm -rf gen gen-static
+    popd >/dev/null
+else
+    echo ">>> [Cache Hit] Existing 'pygame_sdl2-source' directory used."
+fi
 
-rm -rf renpy-$RENPY_VER-source renpy-source
-tar -xf renpy-$RENPY_VER-source.tar.bz2
-mv renpy-$RENPY_VER-source renpy-source
-rm renpy-$RENPY_VER-source.tar.bz2
+# 2. renpy-source & renpy.patch
+if [ "$FORCE_CLEAN" = true ] || [ ! -d "renpy-source" ]; then
+    echo ">>> Extracting and patching renpy-source..."
+    rm -rf renpy-source "renpy-$RENPY_VER-source"
+    tar -xf "$CACHE_DIR/$SOURCE_TAR"
+    mv "renpy-$RENPY_VER-source" renpy-source
+    pushd renpy-source >/dev/null
+    patch -p1 --no-backup-if-mismatch < ../renpy.patch
+    pushd module >/dev/null
+    rm -rf gen gen-static
+    popd >/dev/null
+    popd >/dev/null
+else
+    echo ">>> [Cache Hit] Existing 'renpy-source' directory used."
+fi
 
-rm -rf renpy-$RENPY_VER-sdk renpy_sdk
-unzip -qq renpy-$RENPY_VER-sdk.zip -d renpy_sdk
-rm renpy-$RENPY_VER-sdk.zip
-cp -rf subprocess.pyo renpy_sdk/renpy-$RENPY_VER-sdk/lib/python2.7
+# 3. renpy_sdk
+if [ "$FORCE_CLEAN" = true ] || [ ! -d "renpy_sdk" ]; then
+    echo ">>> Unzipping renpy_sdk..."
+    rm -rf renpy_sdk "renpy-$RENPY_VER-sdk"
+    unzip -qq "$CACHE_DIR/$SDK_ZIP" -d renpy_sdk
+else
+    echo ">>> [Cache Hit] Existing 'renpy_sdk' directory used."
+fi
 
-#dkp-pacman --noconfirm -S switch-libfribidi
-
-#rm -rf raw
-#unzip -qq rawproject.zip -d raw
-#rm rawproject.zip
-
-#rm -rf android-native-symbols renpy_androidlib ./raw/android/lib
-#unzip -qq android-native-symbols.zip -d ./raw/android/lib
-#rm -rf ./raw/android/lib/x86_64/
-#rm android-native-symbols.zip
-
-pushd renpy-source
-patch -p1 < ../renpy.patch
-pushd module
-rm -rf gen gen-static
-popd
-popd
-pushd pygame_sdl2-source
-rm -rf gen gen-static
-popd
+echo "=========================================================================="
+echo " SUCCESS: Setup complete! All downloads and sources are cached."
+echo " Virtual environment: $VENV_DIR"
+echo " Downloads cache:    $CACHE_DIR"
+echo " Run 'bash build.bash' to compile."
+echo "=========================================================================="

@@ -1,0 +1,1 @@
+source/module/renpy.styledata.style_insensitive_functions.c

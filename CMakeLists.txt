@@ -25,7 +25,7 @@ set(OPTIMIZATION_FLAGS
 )
 
 set(INCLUDES
-    ${DEVKITPRO}/portlibs/switch/include/python2.7
+    ${DEVKITPRO}/portlibs/switch/include/python3.14
     ${DEVKITPRO}/portlibs/switch/include/fribidi
     include
     include/module
@@ -99,7 +99,8 @@ set(SOURCES
     source/module/write_png.c
     source/module/renpybidicore.c
 
-    source/module/renpy.compat.dictviews.c
+    source/module/renpy.audio.filter.c
+    source/module/renpy.text.hbfont.c
     source/module/renpy.gl2.gl2draw.c
     source/module/renpy.gl2.gl2mesh.c
     source/module/renpy.gl2.gl2mesh2.c
@@ -188,7 +189,7 @@ endif()
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
-    ${DEVKITPRO}/portlibs/switch/lib/libpython2.7.a
+    ${DEVKITPRO}/portlibs/switch/lib/libpython3.14.a
     ${DEVKITPRO}/portlibs/switch/lib/libfribidi.a
     m
     PkgConfig::EGL

@@ -1,0 +1,1 @@
+source/module/renpy.styledata.style_hover_functions.c
