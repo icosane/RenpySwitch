@@ -103,20 +103,20 @@ download_cached "https://www.renpy.org/dl/$RENPY_VER/$SOURCE_TAR"
 
 # ─── Source Extraction & Patching (Cached Folders) ─────────────────────────────
 # 1. pygame_sdl2-source
-if [ "$FORCE_CLEAN" = true ] || [ ! -d "pygame_sdl2-source" ]; then
+if [ "$FORCE_CLEAN" = true ] || [ ! -f "pygame_sdl2-source/setup.py" ]; then
     echo ">>> Extracting pygame_sdl2 source..."
     rm -rf pygame_sdl2-source "pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER"
     tar -xf "$CACHE_DIR/$PYGAME_TAR"
     mv "pygame_sdl2-$PYGAME_SDL2_VER+renpy$RENPY_VER" pygame_sdl2-source
     pushd pygame_sdl2-source >/dev/null
-    rm -rf gen gen-static
+    rm -rf gen gen-static gen3 gen3-static
     popd >/dev/null
 else
     echo ">>> [Cache Hit] Existing 'pygame_sdl2-source' directory used."
 fi
 
 # 2. renpy-source & renpy.patch
-if [ "$FORCE_CLEAN" = true ] || [ ! -d "renpy-source" ]; then
+if [ "$FORCE_CLEAN" = true ] || [ ! -d "renpy-source/module" ]; then
     echo ">>> Extracting and patching renpy-source..."
     rm -rf renpy-source "renpy-$RENPY_VER-source"
     tar -xf "$CACHE_DIR/$SOURCE_TAR"
@@ -124,7 +124,7 @@ if [ "$FORCE_CLEAN" = true ] || [ ! -d "renpy-source" ]; then
     pushd renpy-source >/dev/null
     patch -p1 --no-backup-if-mismatch < ../renpy.patch
     pushd module >/dev/null
-    rm -rf gen gen-static
+    rm -rf gen gen-static gen3 gen3-static
     popd >/dev/null
     popd >/dev/null
 else

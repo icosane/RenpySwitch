@@ -1,1 +1,0 @@
-source/module/renpy.styledata.styleclass.c

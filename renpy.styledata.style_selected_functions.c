@@ -1,1 +1,0 @@
-source/module/renpy.styledata.style_selected_functions.c

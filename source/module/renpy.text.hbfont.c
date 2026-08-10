@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/gen3-static/renpy.text.hbfont.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/gen3-static/renpy.text.hbfont.c

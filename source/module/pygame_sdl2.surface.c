@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/pygame_sdl2-source/gen3-static/pygame_sdl2.surface.c
+/home/jvrcruz/RenpySwitch/pygame_sdl2-source/gen3-static/pygame_sdl2.surface.c

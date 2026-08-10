@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/pygame_sdl2-source/src/alphablit.c
+/home/jvrcruz/RenpySwitch/pygame_sdl2-source/src/alphablit.c

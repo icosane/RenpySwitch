@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/gen3-static/_renpybidi.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/gen3-static/_renpybidi.c

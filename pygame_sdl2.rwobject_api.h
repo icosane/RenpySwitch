@@ -1,1 +1,0 @@
-include/module/pygame_sdl2/pygame_sdl2.rwobject_api.h

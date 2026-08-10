@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/gen3-static/renpy.uguu.uguu.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/gen3-static/renpy.uguu.uguu.c

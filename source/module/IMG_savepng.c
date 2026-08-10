@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/IMG_savepng.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/IMG_savepng.c

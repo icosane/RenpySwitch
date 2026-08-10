@@ -1,1 +1,0 @@
-source/module/renpy.styledata.style_idle_functions.c

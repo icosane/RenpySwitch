@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/egl_none.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/egl_none.c

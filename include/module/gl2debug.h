@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/gl2debug.h
+/home/jvrcruz/RenpySwitch/renpy-source/module/gl2debug.h

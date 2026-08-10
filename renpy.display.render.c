@@ -1,1 +1,0 @@
-source/module/renpy.display.render.c

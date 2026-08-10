@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/renpysound_core.c
+/home/jvrcruz/RenpySwitch/renpy-source/module/renpysound_core.c

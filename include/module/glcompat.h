@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/renpy-source/module/glcompat.h
+/home/jvrcruz/RenpySwitch/renpy-source/module/glcompat.h

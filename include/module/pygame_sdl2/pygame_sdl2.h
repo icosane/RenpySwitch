@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/pygame_sdl2-source/src/pygame_sdl2/pygame_sdl2.h
+/home/jvrcruz/RenpySwitch/pygame_sdl2-source/src/pygame_sdl2/pygame_sdl2.h

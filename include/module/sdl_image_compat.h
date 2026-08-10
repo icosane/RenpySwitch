@@ -1,1 +1,1 @@
-/mnt/c/Users/jvrcruz/Downloads/RenpySwitch/pygame_sdl2-source/src/sdl_image_compat.h
+/home/jvrcruz/RenpySwitch/pygame_sdl2-source/src/sdl_image_compat.h

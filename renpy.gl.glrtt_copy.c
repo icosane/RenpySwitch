@@ -1,1 +1,0 @@
-source/module/renpy.gl.glrtt_copy.c

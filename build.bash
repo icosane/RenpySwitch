@@ -1,13 +1,38 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 export DEVKITPRO=/opt/devkitpro
 export RENPY_VER=8.3.4
 PYTHON_VER=3.14
 
+CLEAN=false
+
+usage() {
+    echo "Usage: $0 [--clean]"
+    echo "  --clean   remove generated build caches before rebuilding"
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        --clean)
+            CLEAN=true
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            echo "ERROR: unknown argument: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
+
 # ─── Activate venv created by setup.bash ─────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
+cd "$SCRIPT_DIR"
 
 if [ ! -f "$VENV_DIR/bin/activate" ]; then
     echo "ERROR: Venv not found at $VENV_DIR"
@@ -25,16 +50,23 @@ echo ">>> Building C extensions using Cython: $RENPY_CYTHON"
 echo ">>> Using Python: $(which python) — $(python --version)"
 echo ">>> Using Pip:    $(which pip)"
 
+if [ "$CLEAN" = true ]; then
+    echo ">>> --clean specified. Removing generated build caches."
+    rm -rf build-switch switch/build
+    rm -rf pygame_sdl2-source/build pygame_sdl2-source/gen pygame_sdl2-source/gen-static pygame_sdl2-source/gen3 pygame_sdl2-source/gen3-static
+    rm -rf renpy-source/module/build renpy-source/module/gen renpy-source/module/gen-static renpy-source/module/gen3 renpy-source/module/gen3-static
+fi
+
 # ─── Build pygame_sdl2 C extensions ──────────────────────────────────────────
 pushd pygame_sdl2-source
-rm -rf gen gen-static
+mkdir -p gen3 gen3-static
 python setup.py build || true
 PYGAME_SDL2_STATIC=1 python setup.py build || true
 popd
 
 # ─── Build Ren'Py C extensions ───────────────────────────────────────────────
 pushd renpy-source/module
-rm -rf gen gen-static
+mkdir -p gen3 gen3-static
 RENPY_DEPS_INSTALL=/usr/lib/x86_64-linux-gnu:/usr:/usr/local python setup.py build || true
 RENPY_DEPS_INSTALL=/usr/lib/x86_64-linux-gnu:/usr:/usr/local RENPY_STATIC=1 python setup.py build || true
 popd
@@ -57,10 +89,9 @@ bash link_sources.bash
 
 export PREFIXARCHIVE=$(realpath renpy-switch-modules.tar.gz)
 
-rm -rf build-switch
-mkdir build-switch
+mkdir -p build-switch
 pushd build-switch
-mkdir local_prefix
+mkdir -p local_prefix
 export LOCAL_PREFIX=$(realpath local_prefix)
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
@@ -71,23 +102,26 @@ popd
 tar -czvf $PREFIXARCHIVE -C $LOCAL_PREFIX .
 tar -xf renpy-switch-modules.tar.gz -C $DEVKITPRO/portlibs/switch
 rm renpy-switch-modules.tar.gz
-rm -rf build-switch
 
 source /opt/devkitpro/switchvars.sh
 
 # ─── Cross-compile Switch executable ─────────────────────────────────────────
+if [ ! -f switch/CMakeLists.txt ]; then
+    echo "ERROR: switch/CMakeLists.txt is missing."
+    echo "       The Switch executable sources are required to build raw/switch/exefs/main."
+    exit 1
+fi
+
 pushd switch
-rm -rf build
-mkdir build
+mkdir -p build
 pushd build
 cmake ..
-make
+cmake --build .
 popd
 popd
 
 mkdir -p ./raw/switch/exefs
-mv ./switch/build/renpy-switch.nso ./raw/switch/exefs/main
-rm -rf switch include source pygame_sdl2-source
+cp ./switch/build/renpy-switch.nso ./raw/switch/exefs/main
 
 # ─── Assemble Ren'Py project tree ────────────────────────────────────────────
 rm -rf renpy_clear
@@ -98,9 +132,9 @@ mkdir ./renpy_clear/game
 cp -r ./renpy-source/module ./renpy_clear/module
 cp -r ./renpy-source/renpy ./renpy_clear/renpy
 cp ./renpy-source/renpy.py ./renpy_clear/renpy.py
-mv ./script.rpy ./renpy_clear/game/script.rpy
+cp ./script.rpy ./renpy_clear/game/script.rpy
 cp ./renpy_sdk/*/*.exe ./renpy_clear/ || true
-rm -rf renpy-source renpy_sdk ./renpy_clear/lib/*mac*
+rm -rf ./renpy_clear/lib/*mac*
 
 pushd renpy_clear
 ./renpy.sh . compile

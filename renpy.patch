@@ -489,3 +489,151 @@ diff -Naur renpy_orig/renpy.py renpy_mod/renpy.py
 +            with open("save://exception.log", "w") as f:
 +                import traceback
 +                f.write(traceback.format_exc())
+diff -Naur renpy_orig/renpy/audio/renpysound.pyx renpy_mod/renpy/audio/renpysound.pyx
+--- renpy_orig/renpy/audio/renpysound.pyx	2024-12-07 23:25:07.208025500 -0300
++++ renpy_mod/renpy/audio/renpysound.pyx	2026-08-10 00:00:00.000000000 -0300
+@@ -90,12 +90,12 @@
+ 
+     int RPS_get_sample_rate()
+     char *RPS_get_error()
+ 
+-    void (*RPS_generate_audio_c_function)(float *stream, int length)
+-    void (*RPS_apply_audio_filter)(object, float *stream, int length, int channels, int sample_rate)
++    void (*RPS_generate_audio_c_function)(float *stream, int length) noexcept
++    void (*RPS_apply_audio_filter)(object, float *stream, int length, int channels, int sample_rate) noexcept
+ 
+ 
+ from renpy.audio.filter cimport get_apply_audio_filter
+-RPS_apply_audio_filter = <void (*)(object, float *, int, int, int)> get_apply_audio_filter()
++RPS_apply_audio_filter = <void (*)(object, float *, int, int, int) noexcept> get_apply_audio_filter()
+ 
+ 
+ def check_error():
+@@ -518,7 +518,7 @@
+     if not isinstance(fn, int):
+         import ctypes
+         fn = ctypes.cast(fn, ctypes.c_void_p).value
+ 
+-    RPS_generate_audio_c_function = <void (*)(float *, int)> <uintptr_t> fn
++    RPS_generate_audio_c_function = <void (*)(float *, int) noexcept> <uintptr_t> fn
+ 
+ 
+ # Store the sample surfaces so they stay alive.
+diff -Naur renpy_orig/renpy/text/ftfont.pyx renpy_mod/renpy/text/ftfont.pyx
+--- renpy_orig/renpy/text/ftfont.pyx	2024-12-07 23:25:07.235025400 -0300
++++ renpy_mod/renpy/text/ftfont.pyx	2026-08-10 00:00:00.000000000 -0300
+@@ -120,7 +120,7 @@
+ 
+     return False
+ 
+-cdef unsigned long io_func(FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count):
++cdef unsigned long io_func(FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) noexcept:
+     """
+     Seeks to offset, and then reads count bytes from the stream into buffer.
+     """
+@@ -157,7 +157,7 @@
+ 
+     return count
+ 
+-cdef void close_func(FT_Stream stream):
++cdef void close_func(FT_Stream stream) noexcept:
+     """
+     Close the stream.
+ 
+diff -Naur renpy_orig/renpy/text/hbfont.pyx renpy_mod/renpy/text/hbfont.pyx
+--- renpy_orig/renpy/text/hbfont.pyx	2024-12-07 23:25:07.237025300 -0300
++++ renpy_mod/renpy/text/hbfont.pyx	2026-08-10 00:00:00.000000000 -0300
+@@ -246,7 +246,7 @@
+ 
+     return False
+ 
+-cdef unsigned long io_func(FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count):
++cdef unsigned long io_func(FT_Stream stream, unsigned long offset, unsigned char *buffer, unsigned long count) noexcept:
+     """
+     Seeks to offset, and then reads count bytes from the stream into buffer.
+     """
+@@ -283,7 +283,7 @@
+ 
+     return count
+ 
+-cdef void close_func(FT_Stream stream):
++cdef void close_func(FT_Stream stream) noexcept:
+     """
+     Close the stream.
+ 
+diff -Naur renpy_orig/module/ffmedia.c renpy_mod/module/ffmedia.c
+--- renpy_orig/module/ffmedia.c	2024-12-07 23:25:07.185025200 -0300
++++ renpy_mod/module/ffmedia.c	2026-08-10 00:00:00.000000000 -0300
+@@ -1,6 +1,7 @@
+ #include <libavcodec/avcodec.h>
+ #include <libavformat/avformat.h>
+ #include <libswresample/swresample.h>
++#include <libavutil/channel_layout.h>
+ #include <libavutil/time.h>
+ #include <libavutil/pixfmt.h>
+ #include <libswscale/swscale.h>
+@@ -69,7 +70,7 @@
+ 
+ }
+ 
+-static int rwops_write(void *opaque, uint8_t *buf, int buf_size) {
++static int rwops_write(void *opaque, const uint8_t *buf, int buf_size) {
+     printf("Writing to an SDL_rwops is a really bad idea.\n");
+     return -1;
+ }
+@@ -688,27 +689,55 @@
+ 			}
+ 
+             converted_frame->sample_rate = audio_sample_rate;
+-            converted_frame->channel_layout = AV_CH_LAYOUT_STEREO;
+             converted_frame->format = AV_SAMPLE_FMT_S16;
+ 
++#if LIBAVUTIL_VERSION_MAJOR >= 59
++            converted_frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_STEREO;
++
++			if (!ms->audio_decode_frame->ch_layout.nb_channels) {
++				int input_channels = ms->audio_context->ch_layout.nb_channels;
++
++				if (input_channels) {
++					av_channel_layout_default(&ms->audio_decode_frame->ch_layout, input_channels);
++				}
++			}
++
++			if (audio_equal_mono && (ms->audio_decode_frame->ch_layout.nb_channels == 1)) {
++				swr_alloc_set_opts2(
++                    &ms->swr,
++                    &converted_frame->ch_layout,
++                    converted_frame->format,
++                    converted_frame->sample_rate,
++                    &ms->audio_decode_frame->ch_layout,
++                    ms->audio_decode_frame->format,
++                    ms->audio_decode_frame->sample_rate,
++                    0,
++                    NULL);
++
++				swr_set_matrix(ms->swr, stereo_matrix, 1);
++			}
++#else
++            converted_frame->channel_layout = AV_CH_LAYOUT_STEREO;
++
+ 			if (!ms->audio_decode_frame->channel_layout) {
+ 				ms->audio_decode_frame->channel_layout = av_get_default_channel_layout(ms->audio_decode_frame->channels);
+ 
+ 				if (audio_equal_mono && (ms->audio_decode_frame->channels == 1)) {
+-				    swr_alloc_set_opts(
++					swr_alloc_set_opts(
+                         ms->swr,
+                         converted_frame->channel_layout,
+                         converted_frame->format,
+@@ -720,9 +749,10 @@
+                         0,
+                         NULL);
+ 
+-				    swr_set_matrix(ms->swr, stereo_matrix, 1);
++					swr_set_matrix(ms->swr, stereo_matrix, 1);
+ 				}
+ 			}
++#endif
+ 
+ 			if(swr_convert_frame(ms->swr, converted_frame, ms->audio_decode_frame)) {
+ 				av_frame_free(&converted_frame);
