@@ -3,6 +3,7 @@
 
 # Build artifacts
 build-switch/
+build/
 raw/
 renpy_clear/
 private/
@@ -15,3 +16,5 @@ downloads/
 *.tar.xz
 *.pkg.tar.xz
 *.zip
+*.nsp
+*.nro

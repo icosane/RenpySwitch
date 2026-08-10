@@ -3,7 +3,6 @@ set -euo pipefail
 
 export DEVKITPRO=/opt/devkitpro
 export RENPY_VER=8.3.4
-PYTHON_VER=3.14
 
 CLEAN=false
 
@@ -37,6 +36,12 @@ cd "$SCRIPT_DIR"
 if [ ! -f "$VENV_DIR/bin/activate" ]; then
     echo "ERROR: Venv not found at $VENV_DIR"
     echo "       Please run setup.bash first."
+    exit 1
+fi
+
+if [ ! -d renpy_sdk ]; then
+    echo "ERROR: renpy_sdk not found."
+    echo "       Please run setup.bash first to extract the Ren'Py SDK."
     exit 1
 fi
 
@@ -135,29 +140,40 @@ cp ./renpy-source/renpy.py ./renpy_clear/renpy.py
 cp ./script.rpy ./renpy_clear/game/script.rpy
 cp ./renpy_sdk/*/*.exe ./renpy_clear/ || true
 rm -rf ./renpy_clear/lib/*mac*
+rm -rf ./renpy_clear/renpy/common/_layout
 
 pushd renpy_clear
 ./renpy.sh . compile
 find ./renpy/ -regex ".*\.\(pxd\|pyx\|rpym\|pxi\)" -delete
 popd
 
+PYTHON_LIB_DIR="$(find renpy_clear/lib -maxdepth 1 -type d -name 'python3.*' | sort -V | tail -n 1)"
+if [ -z "$PYTHON_LIB_DIR" ]; then
+    echo "ERROR: could not find a Python stdlib directory under renpy_clear/lib."
+    exit 1
+fi
+
 # ─── Generate private archive ────────────────────────────────────────────────
 rm -rf private
 mkdir private
 mkdir private/lib
 cp -r renpy_clear/renpy private/renpy
-cp -r renpy_clear/lib/python$PYTHON_VER/ private/lib/
+cp -r "$PYTHON_LIB_DIR" private/lib/
 cp renpy_clear/renpy.py private/main.py
 rm -rf private/renpy/common
 python generate_private.py
 rm -rf private
 
 # ─── Assemble final Switch romfs layout ──────────────────────────────────────
+rm -rf ./raw/lib ./raw/renpy_clear
+rm -rf ./raw/switch/romfs/Contents/lib.zip
+rm -rf ./raw/switch/romfs/Contents/renpy/common
+rm -f ./raw/switch/romfs/Contents/renpy.py
 mkdir -p ./raw/switch/romfs/Contents/renpy
 mkdir -p ./raw/lib
 cp -r ./renpy_clear/renpy/common ./raw/switch/romfs/Contents/renpy/
 cp ./renpy_clear/renpy.py ./raw/switch/romfs/Contents/
-cp -r ./renpy_clear/lib/python$PYTHON_VER/. ./raw/lib
+cp -r "$PYTHON_LIB_DIR"/. ./raw/lib
 cp -r ./renpy_clear/renpy ./raw/lib
 rm -rf ./raw/lib/renpy/common/
 7z a -tzip ./raw/switch/romfs/Contents/lib.zip ./raw/lib/*

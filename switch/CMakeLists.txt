@@ -124,9 +124,27 @@ endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME}
+set(PYTHON_STATIC_LIBS
     ${DEVKITPRO}/portlibs/switch/lib/libpython3.14.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libpyexpat.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libmpdec.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_Hash_MD5.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_Hash_SHA1.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_Hash_SHA2.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_Hash_SHA3.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_Hash_BLAKE2.a
+    ${DEVKITPRO}/portlibs/switch/lib/python3.14/config-3.14/libHacl_HMAC.a
+    ${DEVKITPRO}/portlibs/switch/lib/libcurl.a
+    ${DEVKITPRO}/portlibs/switch/lib/liblzma.a
+    ${DEVKITPRO}/portlibs/switch/lib/libzstd.a
+    ${DEVKITPRO}/portlibs/switch/lib/libmbedtls.a
+    ${DEVKITPRO}/portlibs/switch/lib/libmbedx509.a
+    ${DEVKITPRO}/portlibs/switch/lib/libmbedcrypto.a
+)
+
+target_link_libraries(${PROJECT_NAME}
     ${DEVKITPRO}/portlibs/switch/lib/librenpy-switch-modules.a
+    ${PYTHON_STATIC_LIBS}
     m
     PkgConfig::EGL
     PkgConfig::FREETYPE2
