@@ -87,6 +87,9 @@ FRIBIDI_PKG="switch-libfribidi-1.0.12-1-any.pkg.tar.xz"
 download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$HELPERS_PKG"
 download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$FRIBIDI_PKG"
 
+# --- Purge conflicting legacy package before running local package installer ---
+dkp-pacman -Rns --noconfirm dkp-meson-scripts || true
+
 dkp-pacman -U --noconfirm "$CACHE_DIR/$HELPERS_PKG"
 dkp-pacman -U --noconfirm "$CACHE_DIR/$FRIBIDI_PKG"
 
