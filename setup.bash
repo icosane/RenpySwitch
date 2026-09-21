@@ -81,17 +81,17 @@ dkp-pacman -S switch-mesa switch-glad switch-libdrm_nouveau \
     switch-libzstd switch-zlib switch-bzip2 --noconfirm --needed
 
 # ─── devkitPro Portlibs Packages (Cached Downloads) ─────────────────────────
-HELPERS_PKG="devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz"
-FRIBIDI_PKG="switch-libfribidi-1.0.12-1-any.pkg.tar.xz"
+#HELPERS_PKG="devkitpro-pkgbuild-helpers-2.2.4-2-any.pkg.tar.xz"
+#FRIBIDI_PKG="switch-libfribidi-1.0.12-1-any.pkg.tar.xz"
 
-download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$HELPERS_PKG"
-download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$FRIBIDI_PKG"
+#download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$HELPERS_PKG"
+#download_cached "https://github.com/knautilus/Utils/releases/download/v1.0/$FRIBIDI_PKG"
 
 # --- Purge conflicting legacy package before running local package installer ---
-dkp-pacman -Rns --noconfirm dkp-meson-scripts || true
+#dkp-pacman -Rns --noconfirm dkp-meson-scripts || true
 
-dkp-pacman -U --noconfirm "$CACHE_DIR/$HELPERS_PKG"
-dkp-pacman -U --noconfirm "$CACHE_DIR/$FRIBIDI_PKG"
+#dkp-pacman -U --noconfirm "$CACHE_DIR/$HELPERS_PKG"
+#dkp-pacman -U --noconfirm "$CACHE_DIR/$FRIBIDI_PKG"
 
 /bin/bash -c 'sed -i'"'"'.bak'"'"' '"'"'s/set(CMAKE_EXE_LINKER_FLAGS_INIT "/set(CMAKE_EXE_LINKER_FLAGS_INIT "-fPIC /'"'"' $DEVKITPRO/switch.cmake'
 
